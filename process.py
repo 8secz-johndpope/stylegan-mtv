@@ -27,6 +27,8 @@ def spectro(model_name, fps, random_seed, start, duration, sr, window_size, disp
     print('================ PARAMETERS')
     print(model_name, fps, random_seed, input_path, output_path, duration, )
 
+    # todo: add auto output file name here
+
     processor = SpectrogramOfflineProcessor(model_name, fps, random_seed, frame_chunk_size)
     processor.process_file(input_path, output_path, start, duration, sr, not no_write, window_size, displacement_factor)
 
