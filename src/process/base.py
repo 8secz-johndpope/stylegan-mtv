@@ -94,7 +94,7 @@ class BaseOfflineProcessor:
         audio_in = ffmpeg.input(input_path, ss=start, t=duration)
 
         joined = ffmpeg.concat(vid_in, audio_in, v=1, a=1).node
-        out = ffmpeg.output(joined[0], joined[1], output_path).overwrite_output()
+        out = ffmpeg.output(joined[0], joined[1], output_path, pix_fmt='yuv420p').overwrite_output()
         out.run()
 
         self.temp_dir.cleanup()

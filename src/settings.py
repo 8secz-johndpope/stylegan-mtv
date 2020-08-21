@@ -22,5 +22,4 @@ if __name__ == '__main__':
     print(SETTINGS_FILE)
     print(LIB_DIR)
     print(MODEL_DIR)
-    # print(AVAILABLE_MODELS)
 
