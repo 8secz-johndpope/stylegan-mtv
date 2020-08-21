@@ -17,20 +17,6 @@ ONLINE_MODEL_PATHS_TF = {
     'wikiart': 'https://drive.google.com/uc?id=1VRxueZjsKCv0JkVfRA5TJzyF7hGSGocJ'
 }
 
-ONLINE_MODEL_PATHS_TORCH = {
-    'albums': 'https://drive.google.com/uc?id=1_Mw7yD-2rbqV8quurxPgwIG7QUwpoAQS',
-    'cats': 'https://drive.google.com/uc?id=1-wiHQJqUUXC-bWMQostYs-82iQhQ54rk',
-    'paintings': 'https://drive.google.com/uc?id=1gbElCrwvusiUNXnV1a0wNPPF4oIot8j8'
-}
-
-SPECTRO_PARAM_MAP = {
-    'x': 'x',
-    'y': 'y',
-    'windowSize': 'window_size',
-    'displacementFactor': 'displacement_factor',
-    'noiseFactor': 'noise_factor'
-}
-
 
 if __name__ == '__main__':
     print(SETTINGS_FILE)

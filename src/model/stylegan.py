@@ -5,9 +5,9 @@ import numpy as np
 import tensorflow as tf
 
 from src.dnnlib import tflib
-from src.utils import find_tf_models, load_latent_reps
+from src.utils import find_stylegan_models, load_latent_reps
 
-AVAILABLE_MODELS = find_tf_models()
+AVAILABLE_MODELS = find_stylegan_models()
 LOAD_ONLY = ['wikiart']
 
 

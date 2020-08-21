@@ -27,7 +27,7 @@ def make_model_map(model_files):
     return model_map
 
 
-def find_tf_models():
+def find_stylegan_models():
     model_files = MODEL_DIR.glob('*.pkl')
     return make_model_map(model_files)
 
@@ -44,13 +44,7 @@ def load_latent_reps():
     return reps
 
 
-# def find_torch_models():
-#     model_files = MODEL_DIR.glob('*.pt')
-#     return make_model_map(model_files)
-
-
 if __name__ == '__main__':
     warn('this is a test')
     warn('this is another', 'test', 'haha cool')
-    print(find_tf_models())
-    # print(find_torch_models())
+    print(find_stylegan_models())

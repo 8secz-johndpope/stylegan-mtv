@@ -1,7 +1,6 @@
 import click
 
-from src.utils import add_src_to_sys_path
-from src.offline import SpectrogramTFOfflineProcessor
+from src import add_src_to_sys_path, SpectrogramOfflineProcessor
 
 add_src_to_sys_path()
 
@@ -28,7 +27,7 @@ def spectro(model_name, fps, random_seed, start, duration, sr, window_size, disp
     print('================ PARAMETERS')
     print(model_name, fps, random_seed, input_path, output_path, duration, )
 
-    processor = SpectrogramTFOfflineProcessor(model_name, fps, random_seed, frame_chunk_size)
+    processor = SpectrogramOfflineProcessor(model_name, fps, random_seed, frame_chunk_size)
     processor.process_file(input_path, output_path, start, duration, sr, not no_write, window_size, displacement_factor)
 
 

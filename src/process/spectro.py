@@ -4,7 +4,7 @@ import numpy as np
 from tqdm import tqdm
 from pathlib import Path
 
-from .base import BaseTFOfflineProcessor, BaseOfflineProcessor
+from .base import BaseOfflineProcessor
 
 
 DEFAULT_SPECTRO_PARAMS = dict(
@@ -23,13 +23,9 @@ def normalized(a, axis=-1, order=2):
     return a / np.expand_dims(l2, axis)
 
 
-class SpectrogramBaseOfflineProcessor(BaseOfflineProcessor):
+class SpectrogramOfflineProcessor(BaseOfflineProcessor):
     def __init__(self, model_name='cats', fps=5, random_seed=False, frame_chunk_size=500):
         super().__init__(model_name, fps, random_seed, frame_chunk_size)
-        self.latent_seed = None
-
-    def get_random_points(self, n=1):
-        return np.random.randn(n, self.model.input_shape)
 
     def get_spectrogram_vec(self, spectrograms, frame_num, window_size=1, displacement_factor=0.1):
         if window_size <= 1:
@@ -49,10 +45,10 @@ class SpectrogramBaseOfflineProcessor(BaseOfflineProcessor):
         frame = averaged.reshape((1, -1))
         return self.latent_seed + (frame * displacement_factor)
 
-    def get_images(self, sound_data, sample_rate, spectrogram_params: dict, window_size=1, displacement_factor=0.1):
+    def sound_to_mel_spectrogram(self, sound_data, sample_rate, spectrogram_params: dict):
         hop_length = sample_rate // self.fps
         # n_fft = hop_length * 4
-        # n_fft = int((self.fps / 2) * hop_length)
+        # # n_fft = int((self.fps / 2) * hop_length)
         n_fft = hop_length
 
         spectrogram_params.update(dict(
@@ -68,18 +64,22 @@ class SpectrogramBaseOfflineProcessor(BaseOfflineProcessor):
             **spectrogram_params
         )
         if mel_spectrogram.shape[0] != self.model.input_shape:
-            n_repeats = self.model.input_shape / mel_spectrogram.shape[0]   # n_mels must be a divisor of input shape
+            n_repeats = self.model.input_shape / mel_spectrogram.shape[0]  # n_mels must be a divisor of input shape
             mel_spectrogram = np.repeat(mel_spectrogram, n_repeats, 0)
 
         reshaped_spec = mel_spectrogram.T
         n_frames = len(reshaped_spec)
         reshaped_spec = reshaped_spec.reshape(n_frames, 1, -1)
-        # mel_spectrogram = normalized(mel_spectrogram, 0)
+
+        return reshaped_spec
+
+    def get_images(self, sound_data, sample_rate, spectrogram_params: dict, window_size=1, displacement_factor=0.1):
+        spectrogram = self.sound_to_mel_spectrogram(sound_data, sample_rate, spectrogram_params)
 
         images = {}
-        for i, frame in tqdm(enumerate(reshaped_spec), total=len(reshaped_spec)):
+        for i, frame in tqdm(enumerate(spectrogram), total=len(spectrogram)):
             # todo: window size based on beats?
-            spectrogram_vec = self.get_spectrogram_vec(reshaped_spec, i, window_size, displacement_factor)
+            spectrogram_vec = self.get_spectrogram_vec(spectrogram, i, window_size, displacement_factor)
 
             latent_vec = spectrogram_vec  # todo: anything else to add here?
 
@@ -103,17 +103,10 @@ class SpectrogramBaseOfflineProcessor(BaseOfflineProcessor):
             spectrogram_params = DEFAULT_SPECTRO_PARAMS
         sound_data, sample_rate = librosa.load(input_path, sr=sr, offset=start, duration=duration)
 
-
-        images = self.get_images(sound_data, sample_rate, spectrogram_params, window_size, displacement_factor)
+        self.get_images(sound_data, sample_rate, spectrogram_params, window_size, displacement_factor)
 
         duration = sound_data.shape[0] / sample_rate
         return self.create_video(duration, input_path, output_path, write=write, start=start)
-
-
-class SpectrogramTFOfflineProcessor(BaseTFOfflineProcessor, SpectrogramBaseOfflineProcessor):
-    def __init__(self, model_name: str = 'cats', fps=5, random_seed=False, frame_chunk_size=500):
-        BaseTFOfflineProcessor.__init__(self, model_name, fps, random_seed, frame_chunk_size)
-        self.latent_seed = self.get_random_points()
 
 
 if __name__ == '__main__':

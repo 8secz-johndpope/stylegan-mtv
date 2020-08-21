@@ -8,20 +8,31 @@ from tqdm import tqdm
 from pathlib import Path
 from scipy.io import wavfile
 
-from ..utils import warn, find_tf_models
+from ..utils import warn, find_stylegan_models
 from src.model import StyleGANModel
 
-AVAILABLE_TF_MODELS = find_tf_models()
+AVAILABLE_STYLEGAN_MODELS = find_stylegan_models()
 
 
 class BaseOfflineProcessor:
     def __init__(self, model_name: str = 'cats', fps=5, random_seed=False, frame_chunk_size=500):
         self.fps = fps
         self.frame_chunk_size = frame_chunk_size
-        if model_name not in AVAILABLE_TF_MODELS and model_name not in AVAILABLE_TF_MODELS:
+        if model_name not in AVAILABLE_STYLEGAN_MODELS and model_name not in AVAILABLE_STYLEGAN_MODELS:
             print(f'Model {model_name} not found!!!')
         self.random_seed = random_seed
         self.temp_dir, self.temp_path = None, None
+        if model_name in AVAILABLE_STYLEGAN_MODELS:
+            self.model_name = model_name
+        else:
+            fallback_model = list(AVAILABLE_STYLEGAN_MODELS.keys())[0]
+            warn(f'Model {model_name} not available, falling back to {fallback_model}')
+            self.model_name = fallback_model
+
+        self.model = StyleGANModel(AVAILABLE_STYLEGAN_MODELS[self.model_name], random_seed=random_seed, reduced_memory=False)
+        self.controller = None
+
+        self.latent_seed = self.get_random_points()
 
     @staticmethod
     def open_wav_file(path: str):
@@ -43,11 +54,8 @@ class BaseOfflineProcessor:
 
         chunks = np.array_split(sound_data, total_frames)
         for i, chunk in tqdm(enumerate(chunks), total=total_frames):
-            latent_vec = self.get
-            timestamp = i / total_frames
-            latent_vec = self.controller.get_latent_vecs(sound_data, timestamp)[0]
-            image = self.model.run_image(latent_vec, as_bytes=False)
-            images[i] = image
+            latent_vec = self.latent_seed + (self.get_random_points() * 0.1)
+            images[i] = self.model.run_image(latent_vec, as_bytes=False)
 
             if i > 0 and i % self.frame_chunk_size == 0 and images:
                 self.write_chunk_to_temp(images)
@@ -55,8 +63,7 @@ class BaseOfflineProcessor:
                 images = {}
 
         self.write_chunk_to_temp(images)
-
-        return images
+        del images
 
     def process_file(self, input_path: str, output_path: str, write=True, start=0):
         self.temp_dir = tempfile.TemporaryDirectory()
@@ -66,14 +73,19 @@ class BaseOfflineProcessor:
         total_frames = math.ceil(duration * self.fps)
 
         print('generating images...')
-        images = self.get_images(sound_data, total_frames)
+        self.get_images(sound_data, total_frames)
 
         return self.create_video(duration, input_path, output_path, write=write, start=start)
 
     def postprocess_images(self, images):
-        # A place to reformat images, if necessary
+        # A place to reformat images, when necessary
+        # Flip the coloring...
         print('post processing images...')
-        return images
+        final_images = {}
+        for idx, img in images.items():
+            final_images[idx] = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+        return final_images
 
     def create_video(self, duration, input_path, output_path, write=True, start=0):
         print(f'images generated, outputting to clip starting at {start} for {duration} seconds...')
@@ -87,28 +99,8 @@ class BaseOfflineProcessor:
 
         self.temp_dir.cleanup()
 
-
-class BaseTFOfflineProcessor(BaseOfflineProcessor):
-    def __init__(self, model_name: str = 'cats', fps=5, random_seed=False, frame_chunk_size=500):
-        super().__init__(model_name, fps, random_seed, frame_chunk_size)
-        if model_name in AVAILABLE_TF_MODELS:
-            self.model_name = model_name
-        else:
-            fallback_model = list(AVAILABLE_TF_MODELS.keys())[0]
-            warn(f'Model {model_name} not available, falling back to {fallback_model}')
-            self.model_name = fallback_model
-
-        self.model = StyleGANModel(AVAILABLE_TF_MODELS[self.model_name], random_seed=random_seed, reduced_memory=False)
-        self.controller = None
-
-    def postprocess_images(self, images):
-        # Flip the coloring...
-        print('post processing images...')
-        final_images = {}
-        for idx, img in images.items():
-            final_images[idx] = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-
-        return final_images
+    def get_random_points(self, n=1):
+        return np.random.randn(n, self.model.input_shape)
 
 
 if __name__ == '__main__':
