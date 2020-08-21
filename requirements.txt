@@ -1,0 +1,8 @@
+tensorflow-gpu
+scipy
+greenlet
+opencv-python
+imageio
+pyaudio
+python-dotenv
+ffmpeg-python

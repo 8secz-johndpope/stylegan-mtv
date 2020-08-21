@@ -1,0 +1,1 @@
+from .stylegan import StyleGANModel
